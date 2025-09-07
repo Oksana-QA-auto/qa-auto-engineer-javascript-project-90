@@ -8,10 +8,16 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "serve:e2e": "npm run build && npm run preview -- --port=5173",
+    "playwright:install": "npx playwright install",
+    "playwright:install:deps": "npx playwright install --with-deps",
     "pretest:e2e": "npx playwright install --with-deps",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed",
-    "report": "playwright show-report"
+    "test:e2e": "npx playwright test",
+    "test:e2e:headed": "npx playwright test --headed",
+    "test:e2e:step1": "npx playwright test tests/step1-basic.spec.js",
+    "test:e2e:step2": "npx playwright test tests/step2-auth.spec.js",
+    "test:e2e:step3": "npx playwright test tests/step3-users.spec.js",
+    "test:e2e:report": "npx playwright show-report"
   },
   "dependencies": {
     "@hexlet/testing-task-manager": "^0.1.5",
@@ -30,6 +36,6 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
-    "vite": "^7.1.3"
+    "vite": "^4.1.3"
   }
 }
