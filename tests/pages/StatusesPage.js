@@ -51,18 +51,18 @@ export default class StatusesPage {
       }
       await this.page.waitForTimeout(250)
     }
-    const table = this.tables.first();
+    const table = this.tables.first()
     await expect(table).toBeVisible({ timeout: 2000 })
   }
 
   async openCreate() {
-    await this.linkCreate.click();
+    await this.linkCreate.click()
     await this.inputName.waitFor({ state: 'visible' })
   }
 
   async openEdit(name) {
     const row = this.rowByName(name)
-    await row.click();
+    await row.click()
     await this.inputName.waitFor({ state: 'visible' })
   }
 
