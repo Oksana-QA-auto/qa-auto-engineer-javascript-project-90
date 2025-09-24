@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test'
 import { LoginPage } from './pages/LoginPage'
 import { UsersPage } from './pages/UsersPage'
 
-function uniq(prefix = 'u') {
-  return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1e6)}`
+function uniq(prefix = 'u', info = test.info()) {
+  return `${prefix}_${Date.now()}_${info.workerIndex}_${Math.floor(Math.random() * 1e6)}`
 }
 
 test.beforeEach(async ({ page }) => {
@@ -20,7 +20,7 @@ test('создание пользователя и отображение в с�
 
   const email = `${uniq()}@example.com`
   const first = 'Alice'
-  const last  = 'Smith'
+  const last = 'Smith'
 
   await users.openCreate()
   await users.fillUser({ email, firstName: first, lastName: last })
@@ -43,13 +43,11 @@ test('редактирование пользователя и валидаци�
   await users.saveBtn.click()
   await expect(users.saveBtn).toBeVisible()
 
-  const valid = await users.email.evaluate(el => el.checkValidity())
-  expect(valid).toBe(false)
+  await expect(users.rowByEmail('not-an-email')).toHaveCount(0)
 
   const fixed = `${uniq('fixed')}@example.com`
   await users.email.fill(fixed)
   await users.save()
-
   await expect(users.rowByEmail(fixed)).toBeVisible()
 })
 
@@ -69,17 +67,17 @@ test('удаление одного пользователя', async ({ page }) 
 test('массовое удаление пользователей (select all)', async ({ page }) => {
   const users = new UsersPage(page)
 
-  for (const n of [1, 2]) {
+  const email1 = `${uniq('bulk1')}@example.com`
+  const email2 = `${uniq('bulk2')}@example.com`
+
+  for (const [e, i] of [[email1, 1], [email2, 2]]) {
     await users.openCreate()
-    await users.fillUser({
-      email: `${uniq(`bulk${n}`)}@example.com`,
-      firstName: `Bulk${n}`,
-      lastName: 'Temp',
-    })
+    await users.fillUser({ email: e, firstName: `Bulk${i}`, lastName: 'Temp' })
     await users.save()
   }
 
   await users.deleteAll()
 
-  expect(await users.dataRowCount()).toBeGreaterThanOrEqual(0)
+  await expect(users.rowByEmail(email1)).toHaveCount(0)
+  await expect(users.rowByEmail(email2)).toHaveCount(0)
 })

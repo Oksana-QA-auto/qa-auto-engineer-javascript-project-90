@@ -83,7 +83,8 @@ export default class UsersPage {
   async deleteAll() {
     await this.selectAll.check()
     await this.deleteBtn.click()
-    await this.ensureOnList()
+    await this.page.goto('/#/users', { waitUntil: 'domcontentloaded' })
+    await this.headingUsers.first().waitFor({ state: 'visible', timeout: 30_000 })
   }
 
   async openEdit(email) {

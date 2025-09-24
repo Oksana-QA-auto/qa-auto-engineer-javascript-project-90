@@ -1,68 +1,83 @@
-import { test, expect } from '@playwright/test'
-import LabelsPage from './pages/LabelsPage.js'
+import { test, expect } from '@playwright/test';
+import LoginPage from './pages/LoginPage';
+import LabelsPage from './pages/LabelsPage';
 
-function uniq() {
-  return Date.now().toString().slice(-9)
+// уникальные значения с учётом параллельности
+function uniq(prefix = '') {
+  const { workerIndex } = test.info();
+  return `${prefix}${Date.now()}_${workerIndex}_${Math.floor(Math.random() * 1e6)}`;
 }
 
-test.describe('Labels', () => {
-  test('создание и отображение в списке', async ({ page }) => {
-    const labels = new LabelsPage(page)
-    await page.goto('/')
-    await labels.goto()
+test.beforeEach(async ({ page }) => {
+  const login = new LoginPage(page);
+  await login.goto();
+  await login.loginAs('qa_user', 'any_password');
+});
 
-    const name = `Label ${uniq()}`
-    await labels.create(name)
-    await labels.assertRowVisible(name)
-  })
+test('Labels • создание и отображение в списке', async ({ page }) => {
+  const labels = new LabelsPage(page);
+  await labels.goto();
 
-  test('редактирование информации', async ({ page }) => {
-    const labels = new LabelsPage(page)
-    await page.goto('/')
-    await labels.goto()
+  const name = `Label ${uniq()}`;
 
-    const name = `Label ${uniq()}`
-    await labels.create(name)
+  await labels.openCreate();
+  await labels.fillLabel({ name });
+  await labels.save();
 
-    await labels.openCreate()
-    const newName = `${name}_edited`
-    await labels.fillLabel(newName)
-    await labels.save()
+  await labels.assertRowVisible(name);
+});
 
-    await labels.assertRowVisible(newName)
-  })
+test('Labels • редактирование информации', async ({ page }) => {
+  const labels = new LabelsPage(page);
+  await labels.goto();
 
-  test('удаление одной метки', async ({ page }) => {
-    const labels = new LabelsPage(page)
-    await page.goto('/')
-    await labels.goto()
+  const name = `Label ${uniq()}`;
+  await labels.openCreate();
+  await labels.fillLabel({ name });
+  await labels.save();
+  await labels.assertRowVisible(name);
 
-    const name = `Label ${uniq()}`
-    await labels.create(name)
+  const newName = `${name}_edited`;
+  await labels.openEdit(name);
+  await labels.fillLabel({ name: newName });
+  await labels.save();
 
-    await labels.deleteOneBySelection(name)
+  await labels.assertRowVisible(newName);
+});
 
-    const table = await labels.ensureOnList()
-    await expect(
-      table
-        .locator('tbody tr')
-        .filter({ has: page.getByRole('cell', { name: new RegExp(`\\b${name}\\b`, 'i') }) })
-        .first()
-    ).toHaveCount(0)
-  })
+test('Labels • удаление одной метки', async ({ page }) => {
+  const labels = new LabelsPage(page);
+  await labels.goto();
 
-  test('массовое удаление (select all)', async ({ page }) => {
-    const labels = new LabelsPage(page)
-    await page.goto('/')
-    await labels.goto()
+  const name = `Label ${uniq()}`;
+  await labels.openCreate();
+  await labels.fillLabel({ name });
+  await labels.save();
+  await labels.assertRowVisible(name);
 
-    const first = `Label ${uniq()}`
-    const second = `Label ${uniq()}`
-    await labels.create(first)
-    await labels.create(second)
+  await labels.deleteOneByName(name);
+  await expect(labels.rowByName(name)).toHaveCount(0);
+});
 
-    await labels.deleteAll()
+test('Labels • массовое удаление (select all)', async ({ page }) => {
+  const labels = new LabelsPage(page);
+  await labels.goto();
 
-    await labels.ensureOnList()
-  })
-})
+  const created = [];
+  for (const _ of [1, 2]) {
+    const name = `Label ${uniq('bulk_')}`;
+    await labels.openCreate();
+    await labels.fillLabel({ name });
+    await labels.save();
+    created.push(name);
+  }
+
+  await labels.deleteAll();
+
+  // таблица может скрываться, если список пуст — не ждём её,
+  // просто проверяем, что наши метки исчезли
+  for (const name of created) {
+    await expect(labels.rowByName(name)).toHaveCount(0);
+  }
+});
+
