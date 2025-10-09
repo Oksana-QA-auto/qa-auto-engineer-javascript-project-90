@@ -2,7 +2,7 @@ import { expect } from '@playwright/test'
 
 const escapeRegExp = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-export default class StatusesPage {
+export default class Statuses {
   constructor(page) {
     this.page = page
 
@@ -114,4 +114,4 @@ export default class StatusesPage {
   }
 }
 
-export { StatusesPage }
+export { Statuses }

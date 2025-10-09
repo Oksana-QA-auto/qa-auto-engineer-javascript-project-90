@@ -2,7 +2,7 @@ import { expect } from '@playwright/test'
 
 const esc = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-export default class UsersPage {
+export default class Users {
   constructor(page) {
     this.page = page
 
@@ -98,4 +98,4 @@ export default class UsersPage {
   }
 }
 
-export { UsersPage }
+export { Users }

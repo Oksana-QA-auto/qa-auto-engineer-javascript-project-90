@@ -1,4 +1,4 @@
-class LoginPage {
+class Auth {
   constructor(page) {
     this.page = page
     this.username = page.getByRole('textbox', { name: /username/i }).first()
@@ -31,5 +31,5 @@ class LoginPage {
   }
 }
 
-export default LoginPage
-export { LoginPage }
+export default Auth
+export { Auth }
