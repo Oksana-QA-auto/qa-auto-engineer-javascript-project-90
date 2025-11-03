@@ -68,9 +68,9 @@ test('Statuses • массовое удаление (select all)', async ({ pag
   await statuses.goto()
 
   const created = []
-  for (const _ of [1, 2]) {
-    const name = `Bulk_${uniq()}`
-    const slug = `bulk-${uniq()}`
+  for (let i = 0; i < 2; i += 1) {
+    const name = `Status ${uniq('bulk_')}_${i}`
+    const slug = `slug-st_${uniq('bulk_')}_${i}`
     await statuses.openCreate()
     await statuses.fillStatus({ name, slug })
     await statuses.save()
@@ -83,3 +83,4 @@ test('Statuses • массовое удаление (select all)', async ({ pag
     await expect(statuses.rowByName(name)).toHaveCount(0)
   }
 })
+

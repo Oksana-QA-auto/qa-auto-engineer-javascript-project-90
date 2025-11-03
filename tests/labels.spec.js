@@ -62,14 +62,14 @@ test('Labels • массовое удаление (select all)', async ({ page 
   const labels = new Labels(page)
   await labels.goto()
 
-  const created = []
-  for (const _ of [1, 2]) {
-    const name = `Label ${uniq('bulk_')}`
-    await labels.openCreate()
-    await labels.fillLabel({ name })
-    await labels.save()
-    created.push(name)
-  }
+  const created = [];
+for (let i = 0; i < 2; i += 1) {
+  const name = `Label ${uniq('bulk_')}_${i}`
+  await labels.openCreate()
+  await labels.fillLabel({ name })
+  await labels.save()
+  created.push(name)
+}
 
   await labels.deleteAll()
 
