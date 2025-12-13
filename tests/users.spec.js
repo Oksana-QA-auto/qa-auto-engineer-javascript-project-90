@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import Auth from './pages/Auth.js'
 import Users from './pages/Users.js'
-import { uniqEmail } from './utils.js'
+import { usersFx } from './fixtures/users.js'
 
 test.beforeEach(async ({ page }) => {
   const login = new Auth(page)
@@ -9,73 +9,64 @@ test.beforeEach(async ({ page }) => {
   await login.loginAs('qa_user', 'any_password')
 
   const users = new Users(page)
-  await users.goto()
+  await users.openUsersList()
 })
 
 test('создание пользователя и отображение в списке', async ({ page }) => {
   const users = new Users(page)
+  const { email, firstName, lastName } = usersFx.create
 
-  const email = uniqEmail(test.info())
-  const first = 'Alice'
-  const last = 'Smith'
-
-  await users.openCreate()
-  await users.fillUser({ email, firstName: first, lastName: last })
-  await users.save()
-
-  await users.assertRowVisible(email, first, last)
+  await users.removeUserIfExists(email)
+  await users.createUser({ email, firstName, lastName })
+  await users.assertUserVisible(email)
 })
 
 test('редактирование пользователя и валидация email', async ({ page }) => {
   const users = new Users(page)
+  const data = usersFx.editEmail
 
-  const email = uniqEmail(test.info())
-  await users.openCreate()
-  await users.fillUser({ email, firstName: 'Bob', lastName: 'Brown' })
-  await users.save()
-  await expect(users.rowByEmail(email)).toBeVisible()
+  await users.removeUserIfExists(data.email)
+  await users.removeUserIfExists(data.fixedEmail)
 
-  await users.openEdit(email)
-  await users.email.fill('not-an-email')
-  await users.saveBtn.click()
-  await expect(users.saveBtn).toBeVisible()
+  await users.createUser({ email: data.email, firstName: data.firstName, lastName: data.lastName })
+  await users.assertUserVisible(data.email)
 
-  await expect(users.rowByEmail('not-an-email')).toHaveCount(0)
+  await users.openEditFormByEmail(data.email)
+  await users.replaceEmail(data.invalidEmail)
 
-  const fixed = uniqEmail(test.info(), 'fixed')
-  await users.email.fill(fixed)
-  await users.save()
-  await expect(users.rowByEmail(fixed)).toBeVisible()
+  const saveBtn = await users.clickSave()
+
+  await expect(saveBtn).toBeVisible()
+  await users.assertUserHidden(data.invalidEmail)
+
+  await users.updateEmailByEmail(data.email, data.fixedEmail)
+  await users.assertUserVisible(data.fixedEmail)
 })
 
 test('удаление одного пользователя', async ({ page }) => {
   const users = new Users(page)
+  const { email, firstName, lastName } = usersFx.deleteOne
 
-  const email = uniqEmail(test.info())
-  await users.openCreate()
-  await users.fillUser({ email, firstName: 'Carl', lastName: 'Stone' })
-  await users.save()
+  await users.removeUserIfExists(email)
+  await users.createUser({ email, firstName, lastName })
+  await users.assertUserVisible(email)
 
-  await expect(users.rowByEmail(email)).toBeVisible()
-  await users.deleteOneByEmail(email)
-  await expect(users.rowByEmail(email)).toHaveCount(0)
+  await users.removeUserByEmail(email)
+  await users.assertUserHidden(email)
 })
 
 test('массовое удаление пользователей (select all)', async ({ page }) => {
   const users = new Users(page)
+  const { user1, user2 } = usersFx.bulk
 
-  const email1 = uniqEmail(test.info(), 'bulk1')
-  await users.openCreate()
-  await users.fillUser({ email: email1, firstName: 'Bulk1', lastName: 'Temp' })
-  await users.save()
+  await users.removeUserIfExists(user1.email)
+  await users.removeUserIfExists(user2.email)
 
-  const email2 = uniqEmail(test.info(), 'bulk2')
-  await users.openCreate()
-  await users.fillUser({ email: email2, firstName: 'Bulk2', lastName: 'Temp' })
-  await users.save()
+  await users.createUser(user1)
+  await users.createUser(user2)
 
-  await users.deleteAll()
+  await users.removeAllUsers()
 
-  await expect(users.rowByEmail(email1)).toHaveCount(0)
-  await expect(users.rowByEmail(email2)).toHaveCount(0)
+  await users.assertUserHidden(user1.email)
+  await users.assertUserHidden(user2.email)
 })
