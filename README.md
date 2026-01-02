@@ -75,20 +75,24 @@
 - Удаление одной задачи
 
 
-Запуск:
+## Запуск
 
-# установка зависимостей
-npm ci
-
-# запуск всех тестов
-npx playwright test
-
-# интерактивный просмотр
-npx playwright test --ui
-
-# HTML-отчет
-npx playwright show-report
-
+**Установить зависимости**
+   ```bash
+   npm ci
+   ```
+**Запуск всех тестов**
+   ```bash
+   npx playwright test
+   ```
+**Интерактивный просмотр**
+   ```bash
+   npx playwright test --ui
+   ```
+**HTML-отчет**
+   ```bash
+   npx playwright show-report
+   ```
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

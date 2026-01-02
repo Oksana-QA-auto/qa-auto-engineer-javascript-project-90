@@ -3,71 +3,77 @@ import Tasks from './pages/Tasks'
 
 let tasks
 
-test.beforeEach(async ({ page }) => {
-  tasks = new Tasks(page)
-  await tasks.open()
-})
+const isEnabled = (name) => String(process.env[name]).toLowerCase() === 'true'
 
-test('renders task sections on Tasks page', async () => {
-  await tasks.waitForBoard(10_000)
+test.describe('Канбан-доска (Tasks)', () => {
+  test.beforeEach(async ({ page }) => {
+    tasks = new Tasks(page)
+    await tasks.open()
+  })
 
-  const draft = tasks.heading(/^draft$/i)
-  const toReview = tasks.heading(/^to review$/i)
-  const toBeFixed = tasks.heading(/^to be fixed$/i)
-  const published = tasks.heading(/^published$/i)
+  test('отображаются колонки на странице Tasks', async () => {
+    await tasks.waitForBoard(10_000)
 
-  await expect(draft).toBeVisible({ timeout: 10_000 })
-  await expect(toReview).toBeVisible({ timeout: 10_000 })
-  await expect(toBeFixed).toBeVisible({ timeout: 10_000 })
-  await expect(published).toBeVisible({ timeout: 10_000 })
-})
+    const draft = tasks.heading(/^draft$/i)
+    const toReview = tasks.heading(/^to review$/i)
+    const toBeFixed = tasks.heading(/^to be fixed$/i)
+    const published = tasks.heading(/^published$/i)
 
-test('filters tasks by text if filter exists', async ({ page }) => {
-  const byPlaceholder = page.getByPlaceholder(/filter|search|поиск/i).first()
-  const byRole = page.getByRole('textbox', { name: /filter|search|поиск/i }).first()
+    await expect(draft).toBeVisible({ timeout: 10_000 })
+    await expect(toReview).toBeVisible({ timeout: 10_000 })
+    await expect(toBeFixed).toBeVisible({ timeout: 10_000 })
+    await expect(published).toBeVisible({ timeout: 10_000 })
+  })
 
-  const hasPlaceholder = await byPlaceholder.count()
-  const hasRole = await byRole.count()
+  test('фильтрация задач по тексту', async ({ page }) => {
+    test.skip(!isEnabled('FILTER_ENABLED'), 'Текстовый фильтр отключён (FILTER_ENABLED!=true)')
 
-  test.skip(!(hasPlaceholder || hasRole), 'В этой версии UI нет поля фильтра — пропускаем проверку')
+    await tasks.waitForBoard(10_000)
 
-  const input = hasPlaceholder ? byPlaceholder : byRole
+    const byPlaceholder = page.getByPlaceholder(/filter|search|поиск/i).first()
+    const byRole = page.getByRole('textbox', { name: /filter|search|поиск/i }).first()
 
-  const anyTask = page.locator('[draggable="true"][data-testid="task"]').first()
-  await expect(anyTask).toBeVisible()
+    const hasPlaceholder = await byPlaceholder.count()
+    const input = hasPlaceholder ? byPlaceholder : byRole
 
-  const text = (await anyTask.textContent())?.trim() || ''
-  const before = await page.locator('[draggable="true"][data-testid="task"]').count()
+    await expect(input).toBeVisible({ timeout: 10_000 })
 
-  await input.fill(text.slice(0, Math.min(8, text.length)))
-  await page.waitForTimeout(300)
+    const anyTask = page.locator('[draggable="true"][data-testid="task"]').first()
+    await expect(anyTask).toBeVisible()
 
-  const after = await page.locator('[draggable="true"][data-testid="task"]').count()
-  expect(after).toBeLessThanOrEqual(before)
-})
+    const text = (await anyTask.textContent())?.trim() ?? ''
+    await expect(text.length).toBeGreaterThan(0)
 
-test('moves task between columns (drag & drop) if supported', async ({ page }) => {
-  const sourceCard = page.locator('[draggable="true"][data-testid="task"]').first()
-  const targetColumn = page.getByText(/in ?progress/i).first().locator('..')
+    const before = await page.locator('[draggable="true"][data-testid="task"]').count()
 
-  const canDrag = await sourceCard.count()
-  const canDropTitle = await page.getByText(/in ?progress/i).count()
-  test.skip(!canDrag || !canDropTitle, 'Нет dnd-элементов — пропускаем')
+    await input.fill(text.slice(0, Math.min(8, text.length)))
+    await page.waitForTimeout(300)
 
-  const beforeInProgress = await targetColumn
-    .locator('[draggable="true"][data-testid="task"]')
-    .count()
+    const after = await page.locator('[draggable="true"][data-testid="task"]').count()
+    expect(after).toBeLessThanOrEqual(before)
+  })
 
-  const title = (await sourceCard.textContent())?.trim() || ''
-  test.skip(!title, 'Пустой заголовок карточки — пропускаем')
+  test('перемещение задачи между колонками (drag & drop)', async ({ page }) => {
+    test.skip(!isEnabled('DND_ENABLED'), 'DnD отключён (DND_ENABLED!=true)')
 
-  await tasks.move(title, 'In progress')
+    await tasks.waitForBoard(10_000)
 
-  await page.waitForTimeout(300)
+    const sourceCard = page.locator('[draggable="true"][data-testid="task"]').first()
+    await expect(sourceCard).toBeVisible()
 
-  const afterInProgress = await targetColumn
-    .locator('[draggable="true"][data-testid="task"]')
-    .count()
+    const targetColumn = tasks.columnContainerByTitle(/in ?progress|в работе/i)
 
-  expect(afterInProgress).toBeGreaterThanOrEqual(beforeInProgress)
+    const beforeInProgress = await targetColumn
+      .locator('[draggable="true"][data-testid="task"]')
+      .count()
+
+    await sourceCard.dragTo(targetColumn)
+    await page.waitForTimeout(300)
+
+    const afterInProgress = await targetColumn
+      .locator('[draggable="true"][data-testid="task"]')
+      .count()
+
+    expect(afterInProgress).toBeGreaterThanOrEqual(beforeInProgress)
+  })
 })
