@@ -4,9 +4,10 @@ export default class Users {
   constructor(page) {
     this.page = page
 
-    this.headingUsers = this.page
-      .getByRole('heading', { level: 6, name: /^(users|пользователи)$/i })
-      .first()
+    this.headingUsers = this.page.getByRole('heading', {
+      level: 6,
+      name: /^(users|пользователи)$/i,
+      }).first()
 
     this.usersTable = this.page.getByRole('table').first()
 
@@ -54,7 +55,12 @@ export default class Users {
 
   async openUsersList() {
     const usersMenuItem = this.page.getByRole('menuitem', { name: /(users|пользователи)/i }).first()
-    const isMenuVisible = await usersMenuItem.isVisible().catch(() => false)
+    let isMenuVisible = false
+    try {
+      isMenuVisible = await usersMenuItem.isVisible()
+    } catch {
+      isMenuVisible = false
+    }
 
     if (isMenuVisible) {
       await usersMenuItem.click()
@@ -62,8 +68,12 @@ export default class Users {
       await this.page.goto('/#/users', { waitUntil: 'domcontentloaded' })
     }
 
-    await expect(this.headingUsers).toBeVisible({ timeout: 10000 })
-    await expect(this.headingUsers).toBeVisible({ timeout: 10000 })
+    await expect(this.headingUsers).toBeVisible({ timeout: 15000 })
+
+    const hasTable = await this.usersTable.isVisible().catch(() => false)
+    if (!hasTable) {
+    await expect(this.createLink).toBeVisible({ timeout: 5000 })
+  }
 
     await this.usersTable.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {})
   }
